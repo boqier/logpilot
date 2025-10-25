@@ -1,0 +1,14 @@
+apiVersion: log.aiops.com/v1
+kind: LogPilot
+metadata:
+  labels:
+    app.kubernetes.io/name: logpilot
+    app.kubernetes.io/managed-by: kustomize
+  name: logpilot-sample
+spec:
+  lokiURL: "http://192.168.30.11:32460"
+  lokiPromQL: '{app="xixi"} |= "ERROR"'
+  llmEndpoint: "https://api.siliconflow.cn/v1"
+  llmToken: "sk-lqcuebxcbfrtrwlckktalpvvsnwxomdneswvuhytfqoookrw"
+  llmModel: "Qwen/Qwen2.5-72B-Instruct"
+  feishuWebhook: "https://www.feishu.cn/flow/api/trigger-webhook/7f016c94474f2681b672311cb70607d1"

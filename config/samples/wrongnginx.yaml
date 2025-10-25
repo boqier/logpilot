@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xixi-error
+  namespace: default
+  labels:
+    app: xixi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xixi
+  template:
+    metadata:
+      labels:
+        app: xixi
+    spec:
+      containers:
+      - name: logger
+        image: busybox:1.36
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            # 每5秒打印一行包含 ERROR 的日志到 stdout，Loki 会把容器 stdout 当作日志采集
+            while true; do
+              echo "$(date -Is) ERROR: can't connect mysql and redis ,wrong!!!"; 
+              sleep 5;
+            done
+        # 可选：暴露端口（不必要）和资源限制
+        resources:
+          limits:
+            cpu: "100m"
+            memory: "64Mi"
+          requests:
+            cpu: "10m"
+            memory: "16Mi"
