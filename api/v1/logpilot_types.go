@@ -50,8 +50,8 @@ type LogPilotSpec struct {
 type LogPilotStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-
-	PreTimeStamp string `json:"preTimestamp"`
+	LastAlertTimeStamp string `json:"lastAlertTimeStamp,omitempty"`
+	PreTimeStamp       string `json:"preTimestamp"`
 }
 
 // +kubebuilder:object:root=true

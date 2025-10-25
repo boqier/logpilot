@@ -68,6 +68,11 @@ spec:
           status:
             description: status defines the observed state of LogPilot
             properties:
+              lastAlertTimeStamp:
+                description: |-
+                  INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+                  Important: Run "make" to regenerate code after modifying this file
+                type: string
               preTimestamp:
                 type: string
             required:

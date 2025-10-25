@@ -69,7 +69,7 @@ func (r *LogPilotReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	fmt.Printf("pretimestamp:%s\n", preTimeStamp)
 	var preTime int64
 	if preTimeStamp == "" {
-		preTime = currenTime - 5
+		preTime = currenTime - 30
 	} else {
 		preTime, _ = strconv.ParseInt(preTimeStamp, 10, 64)
 	}
@@ -80,20 +80,27 @@ func (r *LogPilotReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	fmt.Printf("starttime: %d\n,endtime: %d\n", startTime, endTime)
 	if startTime >= endTime {
 		log.Info("starttime>=endtime")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
 	}
 	startTimeForUpdate := currenTime
 	//调用loki查询日志
 	lokiURL := fmt.Sprintf("%s/loki/api/v1/query_range?query=%s&start=%d&end=%d", logpilot.Spec.LokiURL, url.QueryEscape(lokiQuery), startTime, endTime)
 	fmt.Println(lokiURL)
 	lokiLogs, err := r.queryLoki(lokiURL)
-	fmt.Println(lokiLogs)
+	fmt.Println(time.Now(), "\n", lokiLogs)
 	if err != nil {
 		log.Error(err, "query loki error")
 		return ctrl.Result{}, err
 	}
+	//设置告警间隔
+	alertInterval := int64(60) // 秒
+
+	var lastAlertTime int64
+	if logpilot.Status.LastAlertTimeStamp != "" {
+		lastAlertTime, _ = strconv.ParseInt(logpilot.Status.LastAlertTimeStamp, 10, 64)
+	}
 	//如果有日志的话，调用LLM接口分析日志，如果有异常，发送飞书告警
-	if lokiLogs != "" {
+	if lokiLogs != "" && (currenTime-lastAlertTime) > alertInterval {
 		//TODO 调用LLM接口分析日志
 		//TODO 如果有异常，发送飞书告警
 		fmt.Printf("send log to llm")
@@ -106,6 +113,12 @@ func (r *LogPilotReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if analysisResult.Haserror {
 			fmt.Printf("send feishu alert")
 			err = r.sendFeishuAlert(logpilot.Spec.FeishuWebhook, analysisResult.Analysis)
+			if err != nil {
+				log.Error(err, "send feishu alert error")
+				return ctrl.Result{}, err
+			}
+			//更新最后告警时间
+			logpilot.Status.LastAlertTimeStamp = fmt.Sprintf("%d", currenTime)
 		}
 	}
 	//更新状态
@@ -115,7 +128,7 @@ func (r *LogPilotReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		log.Error(err, "update logpilot status error")
 		return ctrl.Result{}, err
 	}
-	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
 }
 
 func (r *LogPilotReconciler) sendFeishuAlert(webhook, content string) error {
